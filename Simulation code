@@ -1,0 +1,93 @@
+#include <stdio.h>
+#include <string.h>
+
+#define DISK_SIZE 100
+#define BLOCK_SIZE 4
+
+// Struct to represent a file
+typedef struct {
+    char name[20];
+    int start_block;
+    int size;
+} File;
+
+// Array to represent the disk
+char disk[DISK_SIZE * BLOCK_SIZE];
+
+// Function to allocate space for a file using contiguous allocation
+void allocate_file_contiguous(File* file) {
+    int free_blocks = 0;
+    int start_block = -1;
+    for (int i = 0; i < DISK_SIZE; i++) {
+        if (disk[i] == 0) { // Check if block is free
+            if (free_blocks == 0) {
+                start_block = i;
+            }
+            free_blocks++;
+            if (free_blocks == file->size) { // Found contiguous free blocks
+                file->start_block = start_block;
+                for (int j = start_block; j < start_block + file->size; j++) {
+                    disk[j] = 1; // Mark blocks as used
+                }
+                printf("File '%s' allocated from block %d to %d.\n", file->name, start_block, start_block + file->size - 1);
+                return;
+            }
+        } else {
+            free_blocks = 0;
+        }
+    }
+    printf("Error: Not enough contiguous free blocks for file '%s'.\n", file->name);
+}
+
+// Function to delete a file
+void delete_file(File* file) {
+    for (int i = file->start_block; i < file->start_block + file->size; i++) {
+        disk[i] = 0; // Mark blocks as free
+    }
+    file->size = 0;
+    printf("File '%s' deleted.\n", file->name);
+}
+
+// Function to rename a file
+void rename_file(File* file, const char* new_name) {
+    strcpy(file->name, new_name);
+    printf("File renamed to '%s'.\n", file->name);
+}
+
+// Function to move a file to a new start block
+void move_file(File* file, int new_start_block) {
+    int old_start_block = file->start_block;
+    file->start_block = new_start_block;
+    for (int i = old_start_block; i < old_start_block + file->size; i++) {
+        disk[i] = 0; // Mark old blocks as free
+    }
+    for (int i = new_start_block; i < new_start_block + file->size; i++) {
+        disk[i] = 1; // Mark new blocks as used
+    }
+    printf("File '%s' moved from block %d to %d.\n", file->name, old_start_block, new_start_block);
+}
+
+int main() {
+    // Create file 1
+    File file1 = {"file1.txt", -1, 20};
+    allocate_file_contiguous(&file1);
+
+    // Create file 2
+    File file2 = {"file2.doc", -1, 15};
+    allocate_file_contiguous(&file2);
+
+    // Delete file 1
+    delete_file(&file1);
+
+    // Rename file 2
+    rename_file(&file2, "file2_new.doc"); // Function call to rename file 2
+
+    return 0;
+}
+
+
+output--->
+File 'file1.txt' allocated from block 0 to 19.
+File 'file2.doc' allocated from block 20 to 34.
+File 'file1.txt' deleted.
+File renamed to 'file2_new.doc'.
